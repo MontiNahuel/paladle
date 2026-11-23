@@ -2,9 +2,13 @@ import { asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { friends } from "@/db/schema";
-import { slugifyFriendName, toFriendRecord } from "@/db/queries";
+import {
+  buildLegacyColumnsFromAttributes,
+  slugifyFriendName,
+  toFriendRecord,
+} from "@/db/queries";
 import { requireAdminApi } from "@/lib/admin-route-guard";
-import { friendInputSchema } from "@/lib/validation";
+import { dynamicFriendInputSchema } from "@/lib/validation";
 
 async function resolveUniqueSlug(baseName: string): Promise<string> {
   const db = getDb();
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
   if (denied) return denied;
 
   const body = await request.json().catch(() => null);
-  const parsed = friendInputSchema.safeParse(body);
+  const parsed = dynamicFriendInputSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Datos inválidos" },
@@ -50,12 +54,17 @@ export async function POST(request: Request) {
 
   const db = getDb();
   const slug = await resolveUniqueSlug(parsed.data.name);
+  const legacy = buildLegacyColumnsFromAttributes(parsed.data.attributes);
 
   const inserted = await db
     .insert(friends)
     .values({
-      ...parsed.data,
       slug,
+      name: parsed.data.name,
+      avatarUrl: parsed.data.avatarUrl,
+      isActiveInPool: parsed.data.isActiveInPool,
+      ...legacy,
+      attributes: parsed.data.attributes,
     })
     .returning();
 

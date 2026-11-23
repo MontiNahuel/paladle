@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   ACTIVITY_STATUS_OPTIONS,
   LOL_PLAYER_OPTIONS,
+  PARAMETER_TYPE_OPTIONS,
   RETRO_FONT_OPTIONS,
   THEME_PRESET_OPTIONS,
   TRI_STATE_OPTIONS,
@@ -79,3 +80,44 @@ export const scheduleOverrideSchema = z.object({
   dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato YYYY-MM-DD"),
   friendId: z.string().uuid("ID de amigo inválido"),
 });
+
+export const dynamicFriendInputSchema = z.object({
+  name: z.string().trim().min(1, "El nombre es obligatorio").max(60),
+  avatarUrl: urlOrPathSchema,
+  isActiveInPool: z.boolean().default(true),
+  attributes: z.record(
+    z.string(),
+    z.union([z.string(), z.number(), z.boolean()])
+  ),
+});
+
+export type DynamicFriendInput = z.infer<typeof dynamicFriendInputSchema>;
+
+export const parameterInputSchema = z.object({
+  shortLabel: z.string().trim().min(1, "El nombre corto es obligatorio").max(24),
+  fullLabel: z.string().trim().min(1, "El nombre completo es obligatorio").max(60),
+  type: z.enum(PARAMETER_TYPE_OPTIONS),
+  unit: z
+    .string()
+    .trim()
+    .max(12)
+    .nullable()
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  options: z
+    .array(z.string().trim().min(1).max(40))
+    .nullable()
+    .optional()
+    .transform((arr) => (arr && arr.length > 0 ? arr : null)),
+  minValue: z
+    .union([z.coerce.number().int(), z.null(), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  maxValue: z
+    .union([z.coerce.number().int(), z.null(), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  isVisible: z.boolean().default(true),
+});
+
+export type ParameterInput = z.infer<typeof parameterInputSchema>;

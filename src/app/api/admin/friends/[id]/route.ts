@@ -2,9 +2,13 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { dailyChallenges, friends } from "@/db/schema";
-import { toFriendRecord } from "@/db/queries";
+import {
+  buildLegacyColumnsFromAttributes,
+  resolveFriendAttributes,
+  toFriendRecord,
+} from "@/db/queries";
 import { requireAdminApi } from "@/lib/admin-route-guard";
-import { friendInputSchema } from "@/lib/validation";
+import { dynamicFriendInputSchema } from "@/lib/validation";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -16,7 +20,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
-  const parsed = friendInputSchema.partial().safeParse(body);
+  const parsed = dynamicFriendInputSchema.partial().safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Datos inválidos" },
@@ -25,21 +29,45 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const db = getDb();
-  const updated = await db
-    .update(friends)
-    .set({
-      ...parsed.data,
-      updatedAt: new Date(),
-    })
+  const existingRows = await db
+    .select()
+    .from(friends)
     .where(eq(friends.id, id))
-    .returning();
+    .limit(1);
 
-  if (!updated[0]) {
+  const existing = existingRows[0];
+  if (!existing) {
     return NextResponse.json(
       { error: "Amigo no encontrado." },
       { status: 404 }
     );
   }
+
+  const mergedAttributes = parsed.data.attributes
+    ? {
+        ...resolveFriendAttributes(existing),
+        ...parsed.data.attributes,
+      }
+    : resolveFriendAttributes(existing);
+
+  const legacy = buildLegacyColumnsFromAttributes(mergedAttributes, existing);
+
+  const updated = await db
+    .update(friends)
+    .set({
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.avatarUrl !== undefined
+        ? { avatarUrl: parsed.data.avatarUrl }
+        : {}),
+      ...(parsed.data.isActiveInPool !== undefined
+        ? { isActiveInPool: parsed.data.isActiveInPool }
+        : {}),
+      ...legacy,
+      attributes: mergedAttributes,
+      updatedAt: new Date(),
+    })
+    .where(eq(friends.id, id))
+    .returning();
 
   return NextResponse.json({ friend: toFriendRecord(updated[0]) });
 }

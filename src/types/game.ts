@@ -47,7 +47,32 @@ export interface FriendAttributes {
   canDrive: boolean;
 }
 
-export type FriendAttributeKey = keyof FriendAttributes;
+export const PARAMETER_TYPE_OPTIONS = [
+  "number",
+  "enum",
+  "text",
+  "boolean",
+] as const;
+export type ParameterType = (typeof PARAMETER_TYPE_OPTIONS)[number];
+
+export interface GameParameter {
+  id: string;
+  key: string;
+  shortLabel: string;
+  fullLabel: string;
+  type: ParameterType;
+  unit: string | null;
+  options: string[] | null;
+  minValue: number | null;
+  maxValue: number | null;
+  isVisible: boolean;
+  sortOrder: number;
+  isSystem: boolean;
+}
+
+export type DynamicAttributesMap = Record<string, string | number | boolean>;
+
+export type FriendAttributeKey = string;
 
 export interface FriendRecord extends FriendAttributes {
   id: string;
@@ -55,6 +80,7 @@ export interface FriendRecord extends FriendAttributes {
   name: string;
   avatarUrl: string;
   isActiveInPool: boolean;
+  attributes: DynamicAttributesMap;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,6 +134,7 @@ export interface GameBootstrapResponse {
   challengeVersion: number;
   mode: GameMode;
   settings: GameSettingsData;
+  columns: GameParameter[];
   candidates: FriendCandidate[];
   yesterdayFriend: FriendCandidate | null;
   dailyStats: DailyStatsSummary;

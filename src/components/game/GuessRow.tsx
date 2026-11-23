@@ -18,11 +18,21 @@ interface GuessRowProps {
   guess: GuessEntry;
   animate: boolean;
   surfaceColor: string;
+  gridStyle?: React.CSSProperties;
 }
 
-export function GuessRow({ guess, animate, surfaceColor }: GuessRowProps) {
+export function GuessRow({
+  guess,
+  animate,
+  surfaceColor,
+  gridStyle,
+}: GuessRowProps) {
+  const resolvedGridStyle = gridStyle ?? {
+    gridTemplateColumns: `112px repeat(${Math.max(guess.cells.length, 1)}, minmax(78px, 1fr))`,
+  };
+
   return (
-    <div className="grid grid-cols-[106px_repeat(12,minmax(76px,1fr))] gap-1.5 sm:grid-cols-[116px_repeat(12,minmax(78px,1fr))]">
+    <div className="grid gap-1.5" style={resolvedGridStyle}>
       {/* Sticky friend column */}
       <div
         className="paladle-cell sticky left-0 z-30 flex flex-col items-center justify-center gap-1 rounded-[4px] border-2 border-white/30 p-1.5 shadow-[6px_0_12px_rgba(0,0,0,0.45)]"

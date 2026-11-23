@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -15,6 +16,7 @@ import {
   LOL_PLAYER_OPTIONS,
   TRI_STATE_OPTIONS,
   WORK_STATUS_OPTIONS,
+  type DynamicAttributesMap,
 } from "@/types/game";
 
 export const activityStatusEnum = pgEnum(
@@ -43,6 +45,10 @@ export const friends = pgTable("friends", {
   isKuka: boolean("is_kuka").notNull(),
   gameKnowledge: triStateEnum("game_knowledge").notNull(),
   canDrive: boolean("can_drive").notNull(),
+  attributes: jsonb("attributes")
+    .$type<DynamicAttributesMap>()
+    .notNull()
+    .default({}),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -104,7 +110,29 @@ export const gameSettings = pgTable("game_settings", {
     .notNull(),
 });
 
+export const gameParameters = pgTable("game_parameters", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: text("key").notNull().unique(),
+  shortLabel: text("short_label").notNull(),
+  fullLabel: text("full_label").notNull(),
+  type: varchar("type", { length: 16 }).notNull(),
+  unit: text("unit"),
+  options: jsonb("options").$type<string[]>(),
+  minValue: integer("min_value"),
+  maxValue: integer("max_value"),
+  isVisible: boolean("is_visible").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isSystem: boolean("is_system").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export type FriendRow = typeof friends.$inferSelect;
 export type NewFriendRow = typeof friends.$inferInsert;
 export type DailyChallengeRow = typeof dailyChallenges.$inferSelect;
 export type GameSettingsRow = typeof gameSettings.$inferSelect;
+export type GameParameterRow = typeof gameParameters.$inferSelect;

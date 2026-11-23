@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { Check, Copy, Trophy } from "lucide-react";
 import { DynamicImage } from "@/components/ui/DynamicImage";
 import { ModalDialog } from "@/components/ui/ModalDialog";
-import { PALADLE_COLUMNS } from "@/engine/columns";
 import { buildShareText } from "@/engine/share";
 import type { PlayerStats } from "@/hooks/useGameState";
-import type { DailyStatsSummary, GuessEntry } from "@/types/game";
+import type {
+  DailyStatsSummary,
+  GameParameter,
+  GuessEntry,
+} from "@/types/game";
 
 function getCountdownToArgentinaMidnight(): string {
   const now = new Date();
@@ -132,11 +135,13 @@ export function VictoryBanner({
 export function HowToPlayModal({
   open,
   onClose,
+  columns,
   primaryColor,
   surfaceColor,
 }: {
   open: boolean;
   onClose: () => void;
+  columns: GameParameter[];
   primaryColor: string;
   surfaceColor: string;
 }) {
@@ -152,7 +157,7 @@ export function HowToPlayModal({
         <p>
           Cada día a las <strong>00:00 (hora Argentina)</strong> se sortea un
           amigo del grupo. Escribí nombres en el buscador para descubrir quién
-          es comparando sus 12 variables.
+          es comparando sus {columns.length} variables.
         </p>
 
         <div className="space-y-2 rounded-[4px] bg-black/25 p-3.5">
@@ -182,7 +187,7 @@ export function HowToPlayModal({
         <div>
           <p className="mb-1.5 font-bold text-white">Variables evaluadas:</p>
           <div className="flex flex-wrap gap-1.5">
-            {PALADLE_COLUMNS.map((col) => (
+            {columns.map((col) => (
               <span
                 key={col.key}
                 className="rounded-[4px] border border-white/15 bg-white/10 px-2 py-0.5 text-xs"

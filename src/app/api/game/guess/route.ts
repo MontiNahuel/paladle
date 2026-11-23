@@ -5,7 +5,9 @@ import { friends } from "@/db/schema";
 import {
   computeDailyStats,
   ensureDailyChallenge,
+  getVisibleGameParameters,
   recordDailySolve,
+  resolveFriendAttributes,
 } from "@/db/queries";
 import { compareFriendGuess } from "@/engine/compare";
 import { getArgentinaDateKey } from "@/engine/daily";
@@ -26,13 +28,14 @@ export async function POST(request: Request) {
     const dateKey = getArgentinaDateKey();
     const db = getDb();
 
-    const [daily, guessedRows] = await Promise.all([
+    const [daily, guessedRows, visibleColumns] = await Promise.all([
       ensureDailyChallenge(dateKey, "classic"),
       db
         .select()
         .from(friends)
         .where(eq(friends.id, guessId))
         .limit(1),
+      getVisibleGameParameters(),
     ]);
 
     if (!daily) {
@@ -50,7 +53,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const comparison = compareFriendGuess(guessedFriend, daily.target);
+    const comparison = compareFriendGuess(
+      {
+        id: guessedFriend.id,
+        name: guessedFriend.name,
+        avatarUrl: guessedFriend.avatarUrl,
+        attributes: resolveFriendAttributes(guessedFriend),
+      },
+      {
+        id: daily.target.id,
+        name: daily.target.name,
+        avatarUrl: daily.target.avatarUrl,
+        attributes: resolveFriendAttributes(daily.target),
+      },
+      visibleColumns
+    );
     const dailyStats = comparison.isCorrect
       ? await recordDailySolve(dateKey, "classic", attemptNumber)
       : computeDailyStats(daily.challenge);

@@ -5,61 +5,81 @@ import { Edit3, Plus, Power, Search, Trash2 } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { DynamicImage } from "@/components/ui/DynamicImage";
 import { ModalDialog } from "@/components/ui/ModalDialog";
-import { PALADLE_COLUMNS } from "@/engine/columns";
-import type { FriendInput } from "@/lib/validation";
-import type { FriendRecord } from "@/types/game";
+import type {
+  DynamicAttributesMap,
+  FriendRecord,
+  GameParameter,
+} from "@/types/game";
 
 interface FriendsManagerProps {
   friends: FriendRecord[];
+  parameters: GameParameter[];
   onRefresh: () => Promise<void>;
 }
 
-const EMPTY_FORM: FriendInput = {
-  name: "",
-  avatarUrl: "/avatars/avatar-1.svg",
-  isActiveInPool: true,
-  entryYear: 2020,
-  activityStatus: "Activo",
-  workStatus: "Con Laburo",
-  weightKg: 75,
-  heightCm: 175,
-  neighborhood: "",
-  debtorStatus: "No",
-  badFriendStatus: "No",
-  lolPlayerStatus: "No",
-  isKuka: false,
-  gameKnowledge: "Si",
-  canDrive: true,
-};
+interface FriendFormState {
+  name: string;
+  avatarUrl: string;
+  isActiveInPool: boolean;
+  attributes: DynamicAttributesMap;
+}
 
-function recordToForm(record: FriendRecord): FriendInput {
+function getDefaultValueForParameter(
+  param: GameParameter
+): string | number | boolean {
+  if (param.type === "number") return param.minValue ?? 0;
+  if (param.type === "boolean") return false;
+  if (param.type === "enum") return param.options?.[0] ?? "";
+  return "";
+}
+
+function buildEmptyForm(parameters: GameParameter[]): FriendFormState {
+  const attributes: DynamicAttributesMap = {};
+  for (const param of parameters) {
+    attributes[param.key] = getDefaultValueForParameter(param);
+  }
+  return {
+    name: "",
+    avatarUrl: "/avatars/avatar-1.svg",
+    isActiveInPool: true,
+    attributes,
+  };
+}
+
+function recordToForm(
+  record: FriendRecord,
+  parameters: GameParameter[]
+): FriendFormState {
+  const attributes: DynamicAttributesMap = {};
+  for (const param of parameters) {
+    const existing = record.attributes?.[param.key];
+    attributes[param.key] =
+      existing !== undefined ? existing : getDefaultValueForParameter(param);
+  }
   return {
     name: record.name,
     avatarUrl: record.avatarUrl,
     isActiveInPool: record.isActiveInPool,
-    entryYear: record.entryYear,
-    activityStatus: record.activityStatus,
-    workStatus: record.workStatus,
-    weightKg: record.weightKg,
-    heightCm: record.heightCm,
-    neighborhood: record.neighborhood,
-    debtorStatus: record.debtorStatus,
-    badFriendStatus: record.badFriendStatus,
-    lolPlayerStatus: record.lolPlayerStatus,
-    isKuka: record.isKuka,
-    gameKnowledge: record.gameKnowledge,
-    canDrive: record.canDrive,
+    attributes,
   };
 }
 
-export function FriendsManager({ friends, onRefresh }: FriendsManagerProps) {
+export function FriendsManager({
+  friends,
+  parameters,
+  onRefresh,
+}: FriendsManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState<FriendInput>(EMPTY_FORM);
+  const [form, setForm] = useState<FriendFormState>(() =>
+    buildEmptyForm(parameters)
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [poolFilter, setPoolFilter] = useState<"all" | "active" | "paused">("all");
+  const [poolFilter, setPoolFilter] = useState<"all" | "active" | "paused">(
+    "all"
+  );
 
   const activeCount = useMemo(
     () => friends.filter((f) => f.isActiveInPool).length,
@@ -72,23 +92,23 @@ export function FriendsManager({ friends, onRefresh }: FriendsManagerProps) {
       if (poolFilter === "active" && !f.isActiveInPool) return false;
       if (poolFilter === "paused" && f.isActiveInPool) return false;
       if (!q) return true;
+      const barrio = String(f.attributes?.neighborhood ?? f.neighborhood ?? "");
       return (
-        f.name.toLowerCase().includes(q) ||
-        f.neighborhood.toLowerCase().includes(q)
+        f.name.toLowerCase().includes(q) || barrio.toLowerCase().includes(q)
       );
     });
   }, [friends, poolFilter, search]);
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm(buildEmptyForm(parameters));
     setError(null);
     setIsModalOpen(true);
   };
 
   const openEdit = (friend: FriendRecord) => {
     setEditingId(friend.id);
-    setForm(recordToForm(friend));
+    setForm(recordToForm(friend, parameters));
     setError(null);
     setIsModalOpen(true);
   };
@@ -143,6 +163,16 @@ export function FriendsManager({ friends, onRefresh }: FriendsManagerProps) {
       return;
     }
     await onRefresh();
+  };
+
+  const updateAttr = (key: string, value: string | number | boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      attributes: {
+        ...prev.attributes,
+        [key]: value,
+      },
+    }));
   };
 
   return (
@@ -215,86 +245,99 @@ export function FriendsManager({ friends, onRefresh }: FriendsManagerProps) {
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visibleFriends.map((friend) => (
-            <div
-              key={friend.id}
-              className={`flex flex-col justify-between rounded-[4px] border p-4 transition ${
-                friend.isActiveInPool
-                  ? "border-slate-700/80 bg-[#111827] hover:border-slate-600"
-                  : "border-slate-800/80 bg-[#0c1220] opacity-70"
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <DynamicImage
-                  src={friend.avatarUrl}
-                  alt={friend.name}
-                  className="h-14 w-14 shrink-0 rounded-[4px] border border-slate-700 bg-slate-950 object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="truncate text-base font-extrabold text-slate-50">
-                      {friend.name}
-                    </h3>
-                    <span
-                      className={`shrink-0 rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                        friend.isActiveInPool
-                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                          : "bg-slate-800 text-slate-400 border border-slate-700"
-                      }`}
-                    >
-                      {friend.isActiveInPool ? "Activo" : "Pausado"}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs font-medium text-sky-300">
-                    {friend.neighborhood} · Ingreso {friend.entryYear}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-slate-300">
-                    <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
-                      {friend.activityStatus}
-                    </span>
-                    <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
-                      {friend.workStatus}
-                    </span>
-                    <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
-                      {friend.weightKg}kg · {friend.heightCm}cm
-                    </span>
-                    <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
-                      Lol: {friend.lolPlayerStatus}
-                    </span>
+          {visibleFriends.map((friend) => {
+            const attrs = friend.attributes ?? {};
+            const barrio = String(attrs.neighborhood ?? friend.neighborhood);
+            const ingreso = String(attrs.entryYear ?? friend.entryYear);
+            const estado = String(attrs.activityStatus ?? friend.activityStatus);
+            const laburo = String(attrs.workStatus ?? friend.workStatus);
+            const peso = String(attrs.weightKg ?? friend.weightKg);
+            const altura = String(attrs.heightCm ?? friend.heightCm);
+            const lol = String(attrs.lolPlayerStatus ?? friend.lolPlayerStatus);
+
+            return (
+              <div
+                key={friend.id}
+                className={`flex flex-col justify-between rounded-[4px] border p-4 transition ${
+                  friend.isActiveInPool
+                    ? "border-slate-700/80 bg-[#111827] hover:border-slate-600"
+                    : "border-slate-800/80 bg-[#0c1220] opacity-70"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <DynamicImage
+                    src={friend.avatarUrl}
+                    alt={friend.name}
+                    className="h-14 w-14 shrink-0 rounded-[4px] border border-slate-700 bg-slate-950 object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="truncate text-base font-extrabold text-slate-50">
+                        {friend.name}
+                      </h3>
+                      <span
+                        className={`shrink-0 rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                          friend.isActiveInPool
+                            ? "border border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                            : "border border-slate-700 bg-slate-800 text-slate-400"
+                        }`}
+                      >
+                        {friend.isActiveInPool ? "Activo" : "Pausado"}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs font-medium text-sky-300">
+                      {barrio} · Ingreso {ingreso}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-slate-300">
+                      <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
+                        {estado}
+                      </span>
+                      <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
+                        {laburo}
+                      </span>
+                      <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
+                        {peso}kg · {altura}cm
+                      </span>
+                      <span className="rounded-[4px] bg-slate-800/90 px-1.5 py-0.5">
+                        Lol: {lol}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
-                <button
-                  type="button"
-                  onClick={() => handleToggleActive(friend)}
-                  title={
-                    friend.isActiveInPool ? "Pausar del sorteo" : "Activar en sorteo"
-                  }
-                  className="inline-flex items-center gap-1 rounded-[4px] border border-slate-700 bg-slate-800/70 px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
-                >
-                  <Power className="h-3.5 w-3.5" />
-                  {friend.isActiveInPool ? "Pausar" : "Activar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openEdit(friend)}
-                  className="inline-flex items-center gap-1 rounded-[4px] border border-sky-500/35 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/20"
-                >
-                  <Edit3 className="h-3.5 w-3.5" /> Editar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(friend)}
-                  aria-label={`Eliminar a ${friend.name}`}
-                  className="inline-flex items-center rounded-[4px] border border-rose-500/35 bg-rose-500/10 p-1.5 text-rose-300 transition hover:bg-rose-500/20"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(friend)}
+                    title={
+                      friend.isActiveInPool
+                        ? "Pausar del sorteo"
+                        : "Activar en sorteo"
+                    }
+                    className="inline-flex items-center gap-1 rounded-[4px] border border-slate-700 bg-slate-800/70 px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
+                  >
+                    <Power className="h-3.5 w-3.5" />
+                    {friend.isActiveInPool ? "Pausar" : "Activar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(friend)}
+                    className="inline-flex items-center gap-1 rounded-[4px] border border-sky-500/35 bg-sky-500/10 px-2.5 py-1.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/20"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" /> Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(friend)}
+                    aria-label={`Eliminar a ${friend.name}`}
+                    className="inline-flex items-center rounded-[4px] border border-rose-500/35 bg-rose-500/10 p-1.5 text-rose-300 transition hover:bg-rose-500/20"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -344,52 +387,59 @@ export function FriendsManager({ friends, onRefresh }: FriendsManagerProps) {
           />
 
           <div className="grid gap-3 border-t border-slate-800 pt-4 sm:grid-cols-2 lg:grid-cols-3">
-            {PALADLE_COLUMNS.map((col) => {
-              const val = form[col.key];
+            {parameters.map((param) => {
+              const val = form.attributes[param.key];
+              const options = param.options ?? [];
+              const currentStr = String(val ?? "");
+              const selectOptions =
+                param.type === "enum" &&
+                currentStr &&
+                !options.includes(currentStr)
+                  ? [currentStr, ...options]
+                  : options;
+
               return (
-                <div key={col.key}>
-                  <label className="mb-1 block text-xs font-bold text-slate-300">
-                    {col.fullLabel}
+                <div key={param.id}>
+                  <label className="mb-1 flex items-center justify-between gap-1 text-xs font-bold text-slate-300">
+                    <span>{param.fullLabel}</span>
+                    {!param.isVisible && (
+                      <span className="rounded-[4px] bg-slate-800 px-1 text-[10px] text-slate-400">
+                        Oculto
+                      </span>
+                    )}
                   </label>
 
-                  {col.type === "number" && (
+                  {param.type === "number" && (
                     <input
                       required
                       type="number"
-                      min={col.min}
-                      max={col.max}
-                      value={Number(val)}
+                      min={param.minValue ?? undefined}
+                      max={param.maxValue ?? undefined}
+                      value={Number(val ?? 0)}
                       onChange={(e) =>
-                        setForm({
-                          ...form,
-                          [col.key]: Number(e.target.value),
-                        })
+                        updateAttr(param.key, Number(e.target.value))
                       }
                       className="w-full rounded-[4px] border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                     />
                   )}
 
-                  {col.type === "text" && (
+                  {param.type === "text" && (
                     <input
                       required
                       type="text"
-                      value={String(val)}
-                      onChange={(e) =>
-                        setForm({ ...form, [col.key]: e.target.value })
-                      }
+                      value={currentStr}
+                      onChange={(e) => updateAttr(param.key, e.target.value)}
                       className="w-full rounded-[4px] border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                     />
                   )}
 
-                  {col.type === "enum" && col.options && (
+                  {param.type === "enum" && (
                     <select
-                      value={String(val)}
-                      onChange={(e) =>
-                        setForm({ ...form, [col.key]: e.target.value })
-                      }
+                      value={currentStr}
+                      onChange={(e) => updateAttr(param.key, e.target.value)}
                       className="w-full rounded-[4px] border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                     >
-                      {col.options.map((opt) => (
+                      {selectOptions.map((opt) => (
                         <option key={opt} value={opt}>
                           {opt}
                         </option>
@@ -397,14 +447,11 @@ export function FriendsManager({ friends, onRefresh }: FriendsManagerProps) {
                     </select>
                   )}
 
-                  {col.type === "boolean" && (
+                  {param.type === "boolean" && (
                     <select
-                      value={val ? "true" : "false"}
+                      value={Boolean(val) ? "true" : "false"}
                       onChange={(e) =>
-                        setForm({
-                          ...form,
-                          [col.key]: e.target.value === "true",
-                        })
+                        updateAttr(param.key, e.target.value === "true")
                       }
                       className="w-full rounded-[4px] border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
                     >

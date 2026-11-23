@@ -26,7 +26,7 @@ interface PaladleGameProps {
 }
 
 export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
-  const { settings, candidates, yesterdayFriend, dateKey, poolEmpty } =
+  const { settings, columns, candidates, yesterdayFriend, dateKey, poolEmpty } =
     initialData;
 
   const { guesses, stats, solved, hydrated, recordGuess } = useGameState(
@@ -299,6 +299,7 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
             )}
 
             <GuessBoard
+              columns={columns}
               guesses={guesses}
               latestGuessId={latestGuessId}
               surfaceColor={settings.surfaceColor}
@@ -329,6 +330,7 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
       <HowToPlayModal
         open={showHelp}
         onClose={() => setShowHelp(false)}
+        columns={columns}
         primaryColor={settings.primaryColor}
         surfaceColor={settings.surfaceColor}
       />

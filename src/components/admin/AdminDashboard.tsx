@@ -9,17 +9,19 @@ import {
   LogOut,
   Palette,
   ShieldCheck,
+  SlidersHorizontal,
   Users,
 } from "lucide-react";
 import { FriendsManager } from "@/components/admin/FriendsManager";
+import { ParametersManager } from "@/components/admin/ParametersManager";
 import {
   ScheduleManager,
   type ScheduleItem,
 } from "@/components/admin/ScheduleManager";
 import { ThemeSettingsManager } from "@/components/admin/ThemeSettingsManager";
-import type { FriendRecord, GameSettingsData } from "@/types/game";
+import type { FriendRecord, GameParameter, GameSettingsData } from "@/types/game";
 
-type TabId = "friends" | "theme" | "schedule";
+type TabId = "friends" | "parameters" | "theme" | "schedule";
 
 interface AdminDashboardProps {
   initialAuthenticated: boolean;
@@ -33,35 +35,41 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
 
   const [tab, setTab] = useState<TabId>("friends");
   const [friends, setFriends] = useState<FriendRecord[]>([]);
+  const [parameters, setParameters] = useState<GameParameter[]>([]);
   const [settings, setSettings] = useState<GameSettingsData | null>(null);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [todayKey, setTodayKey] = useState("");
   const [loading, setLoading] = useState(initialAuthenticated);
 
   const fetchAdminBundle = useCallback(async () => {
-    const [friendsRes, settingsRes, scheduleRes] = await Promise.all([
+    const [friendsRes, paramsRes, settingsRes, scheduleRes] = await Promise.all([
       fetch("/api/admin/friends"),
+      fetch("/api/admin/parameters"),
       fetch("/api/admin/settings"),
       fetch("/api/admin/schedule"),
     ]);
 
     if (
       friendsRes.status === 401 ||
+      paramsRes.status === 401 ||
       settingsRes.status === 401 ||
       scheduleRes.status === 401
     ) {
       return { unauthorized: true as const };
     }
 
-    const [friendsJson, settingsJson, scheduleJson] = await Promise.all([
-      friendsRes.json(),
-      settingsRes.json(),
-      scheduleRes.json(),
-    ]);
+    const [friendsJson, paramsJson, settingsJson, scheduleJson] =
+      await Promise.all([
+        friendsRes.json(),
+        paramsRes.json(),
+        settingsRes.json(),
+        scheduleRes.json(),
+      ]);
 
     return {
       unauthorized: false as const,
       friends: (friendsJson.friends ?? []) as FriendRecord[],
+      parameters: (paramsJson.parameters ?? []) as GameParameter[],
       settings: (settingsJson.settings ?? null) as GameSettingsData | null,
       schedule: (scheduleJson.schedule ?? []) as ScheduleItem[],
       todayKey: (scheduleJson.todayKey ?? "") as string,
@@ -77,6 +85,7 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
         return;
       }
       setFriends(result.friends);
+      setParameters(result.parameters);
       setSettings(result.settings);
       setSchedule(result.schedule);
       setTodayKey(result.todayKey);
@@ -94,6 +103,7 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
         setAuthenticated(false);
       } else {
         setFriends(result.friends);
+        setParameters(result.parameters);
         setSettings(result.settings);
         setSchedule(result.schedule);
         setTodayKey(result.todayKey);
@@ -218,9 +228,14 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
           </button>
         </div>
 
-        <nav className="mx-auto flex max-w-6xl gap-1 px-4">
+        <nav className="mx-auto flex max-w-6xl overflow-x-auto gap-1 px-4">
           {[
             { id: "friends" as const, label: "Amigos", icon: Users },
+            {
+              id: "parameters" as const,
+              label: "Parámetros",
+              icon: SlidersHorizontal,
+            },
             { id: "theme" as const, label: "Estética y Reglas", icon: Palette },
             { id: "schedule" as const, label: "Calendario Diario", icon: Calendar },
           ].map((item) => {
@@ -253,7 +268,17 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
         ) : (
           <>
             {tab === "friends" && (
-              <FriendsManager friends={friends} onRefresh={loadAllData} />
+              <FriendsManager
+                friends={friends}
+                parameters={parameters}
+                onRefresh={loadAllData}
+              />
+            )}
+            {tab === "parameters" && (
+              <ParametersManager
+                parameters={parameters}
+                onRefresh={loadAllData}
+              />
             )}
             {tab === "theme" && settings && (
               <ThemeSettingsManager

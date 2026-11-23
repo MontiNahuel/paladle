@@ -1,23 +1,23 @@
 import {
   ACTIVITY_STATUS_OPTIONS,
-  FriendAttributeKey,
-  FriendAttributes,
   LOL_PLAYER_OPTIONS,
   TRI_STATE_OPTIONS,
   WORK_STATUS_OPTIONS,
+  type DynamicAttributesMap,
+  type ParameterType,
 } from "@/types/game";
 
-export type ColumnInputType = "number" | "enum" | "text" | "boolean";
+export type ColumnInputType = ParameterType;
 
-export interface ColumnDefinition<K extends FriendAttributeKey = FriendAttributeKey> {
-  key: K;
+export interface ColumnDefinition {
+  key: string;
   shortLabel: string;
   fullLabel: string;
   type: ColumnInputType;
-  unit?: string;
-  options?: readonly string[];
-  min?: number;
-  max?: number;
+  unit?: string | null;
+  options?: readonly string[] | null;
+  min?: number | null;
+  max?: number | null;
 }
 
 export const PALADLE_COLUMNS: readonly ColumnDefinition[] = [
@@ -111,11 +111,14 @@ export const PALADLE_COLUMNS: readonly ColumnDefinition[] = [
 
 export function formatAttributeValue(
   col: ColumnDefinition,
-  attrs: FriendAttributes
+  attrs: DynamicAttributesMap | Record<string, unknown>
 ): string {
   const value = attrs[col.key];
+  if (value === undefined || value === null || value === "") {
+    return "—";
+  }
   if (col.type === "boolean") {
-    return value ? "Si" : "No";
+    return Boolean(value) ? "Si" : "No";
   }
   if (col.type === "number" && col.unit) {
     return `${value}${col.unit}`;

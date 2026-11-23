@@ -77,6 +77,50 @@ describe("compareFriendGuess", () => {
     assert.equal(byKey.gameKnowledge.status, "correct");
     assert.equal(byKey.canDrive.status, "wrong");
   });
+
+  it("supports dynamic columns and custom enum options like Jubilado", () => {
+    const customCols = [
+      {
+        key: "workStatus",
+        shortLabel: "Laburo",
+        fullLabel: "Situación Laboral",
+        type: "enum" as const,
+        options: ["Con Laburo", "Sin Laburo", "Laburo Parcial", "Jubilado"],
+      },
+      {
+        key: "hinchaDe",
+        shortLabel: "Hincha",
+        fullLabel: "Hincha de",
+        type: "text" as const,
+      },
+    ];
+
+    const guess = {
+      id: "f-3",
+      name: "Pepe",
+      avatarUrl: "/avatars/avatar-1.svg",
+      attributes: {
+        workStatus: "Jubilado",
+        hinchaDe: "Racing",
+      },
+    };
+    const target = {
+      id: "f-4",
+      name: "Tito",
+      avatarUrl: "/avatars/avatar-2.svg",
+      attributes: {
+        workStatus: "Jubilado",
+        hinchaDe: "Boca",
+      },
+    };
+
+    const result = compareFriendGuess(guess, target, customCols);
+    assert.equal(result.cells.length, 2);
+    assert.equal(result.cells[0].displayValue, "Jubilado");
+    assert.equal(result.cells[0].status, "correct");
+    assert.equal(result.cells[1].displayValue, "Racing");
+    assert.equal(result.cells[1].status, "wrong");
+  });
 });
 
 describe("daily helpers", () => {

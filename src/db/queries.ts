@@ -1,30 +1,151 @@
 import crypto from "node:crypto";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   dailyChallenges,
   friends,
+  gameParameters,
   gameSettings,
   type DailyChallengeRow,
   type FriendRow,
+  type GameParameterRow,
   type GameSettingsRow,
 } from "@/db/schema";
+import { PALADLE_COLUMNS } from "@/engine/columns";
 import {
   getArgentinaDateKey,
   getPreviousDateKey,
   pickDailyFriendId,
 } from "@/engine/daily";
 import { DEFAULT_GAME_SETTINGS } from "@/lib/theme";
-import type {
-  DailyStatsSummary,
-  FriendCandidate,
-  FriendRecord,
-  GameBootstrapResponse,
-  GameMode,
-  GameSettingsData,
-  RetroFont,
-  ThemePreset,
+import {
+  ACTIVITY_STATUS_OPTIONS,
+  LOL_PLAYER_OPTIONS,
+  TRI_STATE_OPTIONS,
+  WORK_STATUS_OPTIONS,
+  type ActivityStatus,
+  type DailyStatsSummary,
+  type DynamicAttributesMap,
+  type FriendCandidate,
+  type FriendRecord,
+  type GameBootstrapResponse,
+  type GameMode,
+  type GameParameter,
+  type GameSettingsData,
+  type LolPlayerStatus,
+  type ParameterType,
+  type RetroFont,
+  type ThemePreset,
+  type TriStateStatus,
+  type WorkStatus,
 } from "@/types/game";
+
+function pickValidEnum<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T
+): T {
+  return typeof value === "string" && allowed.includes(value as T)
+    ? (value as T)
+    : fallback;
+}
+
+export function resolveFriendAttributes(row: FriendRow): DynamicAttributesMap {
+  return {
+    entryYear: row.entryYear,
+    activityStatus: row.activityStatus,
+    workStatus: row.workStatus,
+    weightKg: row.weightKg,
+    heightCm: row.heightCm,
+    neighborhood: row.neighborhood,
+    debtorStatus: row.debtorStatus,
+    badFriendStatus: row.badFriendStatus,
+    lolPlayerStatus: row.lolPlayerStatus,
+    isKuka: row.isKuka,
+    gameKnowledge: row.gameKnowledge,
+    canDrive: row.canDrive,
+    ...(row.attributes ?? {}),
+  };
+}
+
+export function buildLegacyColumnsFromAttributes(
+  attrs: DynamicAttributesMap,
+  fallback?: Partial<FriendRow>
+) {
+  return {
+    entryYear:
+      typeof attrs.entryYear === "number"
+        ? Math.round(attrs.entryYear)
+        : (fallback?.entryYear ?? 2020),
+    activityStatus: pickValidEnum<ActivityStatus>(
+      attrs.activityStatus,
+      ACTIVITY_STATUS_OPTIONS,
+      fallback?.activityStatus ?? "Activo"
+    ),
+    workStatus: pickValidEnum<WorkStatus>(
+      attrs.workStatus,
+      WORK_STATUS_OPTIONS,
+      fallback?.workStatus ?? "Con Laburo"
+    ),
+    weightKg:
+      typeof attrs.weightKg === "number"
+        ? Math.round(attrs.weightKg)
+        : (fallback?.weightKg ?? 75),
+    heightCm:
+      typeof attrs.heightCm === "number"
+        ? Math.round(attrs.heightCm)
+        : (fallback?.heightCm ?? 175),
+    neighborhood:
+      typeof attrs.neighborhood === "string" && attrs.neighborhood.trim()
+        ? attrs.neighborhood.trim()
+        : (fallback?.neighborhood ?? "Sin definir"),
+    debtorStatus: pickValidEnum<TriStateStatus>(
+      attrs.debtorStatus,
+      TRI_STATE_OPTIONS,
+      fallback?.debtorStatus ?? "No"
+    ),
+    badFriendStatus: pickValidEnum<TriStateStatus>(
+      attrs.badFriendStatus,
+      TRI_STATE_OPTIONS,
+      fallback?.badFriendStatus ?? "No"
+    ),
+    lolPlayerStatus: pickValidEnum<LolPlayerStatus>(
+      attrs.lolPlayerStatus,
+      LOL_PLAYER_OPTIONS,
+      fallback?.lolPlayerStatus ?? "No"
+    ),
+    isKuka:
+      typeof attrs.isKuka === "boolean"
+        ? attrs.isKuka
+        : (fallback?.isKuka ?? false),
+    gameKnowledge: pickValidEnum<TriStateStatus>(
+      attrs.gameKnowledge,
+      TRI_STATE_OPTIONS,
+      fallback?.gameKnowledge ?? "Si"
+    ),
+    canDrive:
+      typeof attrs.canDrive === "boolean"
+        ? attrs.canDrive
+        : (fallback?.canDrive ?? true),
+  };
+}
+
+export function toGameParameter(row: GameParameterRow): GameParameter {
+  return {
+    id: row.id,
+    key: row.key,
+    shortLabel: row.shortLabel,
+    fullLabel: row.fullLabel,
+    type: row.type as ParameterType,
+    unit: row.unit ?? null,
+    options: row.options ?? null,
+    minValue: row.minValue ?? null,
+    maxValue: row.maxValue ?? null,
+    isVisible: row.isVisible,
+    sortOrder: row.sortOrder,
+    isSystem: row.isSystem,
+  };
+}
 
 export function toFriendRecord(row: FriendRow): FriendRecord {
   return {
@@ -45,6 +166,7 @@ export function toFriendRecord(row: FriendRow): FriendRecord {
     isKuka: row.isKuka,
     gameKnowledge: row.gameKnowledge,
     canDrive: row.canDrive,
+    attributes: resolveFriendAttributes(row),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -216,32 +338,78 @@ export async function getYesterdayCandidate(
   return rows[0] ?? null;
 }
 
+export async function ensureGameParameters(): Promise<GameParameter[]> {
+  const db = getDb();
+  const existing = await db
+    .select()
+    .from(gameParameters)
+    .orderBy(asc(gameParameters.sortOrder), asc(gameParameters.createdAt));
+
+  if (existing.length > 0) {
+    return existing.map(toGameParameter);
+  }
+
+  await db
+    .insert(gameParameters)
+    .values(
+      PALADLE_COLUMNS.map((col, idx) => ({
+        key: col.key,
+        shortLabel: col.shortLabel,
+        fullLabel: col.fullLabel,
+        type: col.type,
+        unit: col.unit ?? null,
+        options: col.options ? [...col.options] : null,
+        minValue: col.min ?? null,
+        maxValue: col.max ?? null,
+        isVisible: true,
+        sortOrder: idx,
+        isSystem: true,
+      }))
+    )
+    .onConflictDoNothing({ target: gameParameters.key });
+
+  const created = await db
+    .select()
+    .from(gameParameters)
+    .orderBy(asc(gameParameters.sortOrder), asc(gameParameters.createdAt));
+
+  return created.map(toGameParameter);
+}
+
+export async function getVisibleGameParameters(): Promise<GameParameter[]> {
+  const all = await ensureGameParameters();
+  return all.filter((p) => p.isVisible);
+}
+
 export async function getGameBootstrap(
   mode: GameMode = "classic"
 ): Promise<GameBootstrapResponse> {
   const db = getDb();
   const dateKey = getArgentinaDateKey();
 
-  const [settings, daily, yesterdayFriend, candidateRows] = await Promise.all([
-    getOrInitGameSettings(),
-    ensureDailyChallenge(dateKey, mode),
-    getYesterdayCandidate(dateKey, mode),
-    db
-      .select({
-        id: friends.id,
-        name: friends.name,
-        avatarUrl: friends.avatarUrl,
-      })
-      .from(friends)
-      .where(eq(friends.isActiveInPool, true))
-      .orderBy(friends.name),
-  ]);
+  const [settings, columns, daily, yesterdayFriend, candidateRows] =
+    await Promise.all([
+      getOrInitGameSettings(),
+      getVisibleGameParameters(),
+      ensureDailyChallenge(dateKey, mode),
+      getYesterdayCandidate(dateKey, mode),
+      db
+        .select({
+          id: friends.id,
+          name: friends.name,
+          avatarUrl: friends.avatarUrl,
+        })
+        .from(friends)
+        .where(eq(friends.isActiveInPool, true))
+        .orderBy(friends.name),
+    ]);
 
   return {
     dateKey,
     challengeVersion: daily?.challenge.version ?? 1,
     mode,
     settings,
+    columns,
     candidates: candidateRows,
     yesterdayFriend,
     dailyStats: computeDailyStats(daily?.challenge),

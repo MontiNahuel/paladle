@@ -1,16 +1,17 @@
 "use client";
 
-import { PALADLE_COLUMNS } from "@/engine/columns";
 import { GuessRow } from "@/components/game/GuessRow";
-import type { GuessEntry } from "@/types/game";
+import type { GameParameter, GuessEntry } from "@/types/game";
 
 interface GuessBoardProps {
+  columns: GameParameter[];
   guesses: GuessEntry[];
   latestGuessId: string | null;
   surfaceColor: string;
 }
 
 export function GuessBoard({
+  columns,
   guesses,
   latestGuessId,
   surfaceColor,
@@ -19,18 +20,27 @@ export function GuessBoard({
     return null;
   }
 
+  const colCount = Math.max(columns.length, guesses[0]?.cells.length ?? 0, 1);
+  const gridStyle = {
+    gridTemplateColumns: `112px repeat(${colCount}, minmax(78px, 1fr))`,
+  };
+  const minWidthPx = 112 + colCount * 78 + colCount * 6;
+
   return (
     <div className="paladle-scroller w-full overflow-x-auto pb-3">
-      <div className="mx-auto min-w-[1040px] max-w-7xl space-y-2">
+      <div
+        className="mx-auto max-w-7xl space-y-2"
+        style={{ minWidth: `${minWidthPx}px` }}
+      >
         {/* Column headers */}
-        <div className="grid grid-cols-[106px_repeat(12,minmax(76px,1fr))] gap-1.5 sm:grid-cols-[116px_repeat(12,minmax(78px,1fr))]">
+        <div className="grid gap-1.5" style={gridStyle}>
           <div
             className="sticky left-0 z-30 flex items-center justify-center rounded-[4px] border border-white/25 px-2 py-1.5 text-center text-xs font-extrabold uppercase tracking-wide text-white shadow-[6px_0_12px_rgba(0,0,0,0.45)]"
             style={{ backgroundColor: surfaceColor }}
           >
             Amigo
           </div>
-          {PALADLE_COLUMNS.map((col) => (
+          {columns.map((col) => (
             <div
               key={col.key}
               title={col.fullLabel}
@@ -49,6 +59,7 @@ export function GuessBoard({
               guess={guess}
               animate={guess.guessId === latestGuessId}
               surfaceColor={surfaceColor}
+              gridStyle={gridStyle}
             />
           ))}
         </div>
