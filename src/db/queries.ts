@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
@@ -238,12 +239,66 @@ export async function getGameBootstrap(
 
   return {
     dateKey,
+    challengeVersion: daily?.challenge.version ?? 1,
     mode,
     settings,
     candidates: candidateRows,
     yesterdayFriend,
     dailyStats: computeDailyStats(daily?.challenge),
     poolEmpty: !daily || candidateRows.length === 0,
+  };
+}
+
+export async function rerollDailyChallenge(
+  dateKey: string,
+  mode: GameMode = "classic"
+): Promise<{ friendId: string; friendName: string; friendAvatarUrl: string }> {
+  const db = getDb();
+  const current = await ensureDailyChallenge(dateKey, mode);
+
+  const activeFriends = await db
+    .select({
+      id: friends.id,
+      name: friends.name,
+      avatarUrl: friends.avatarUrl,
+    })
+    .from(friends)
+    .where(eq(friends.isActiveInPool, true));
+
+  if (activeFriends.length === 0) {
+    throw new Error("No hay amigos activos en el pool para sortear.");
+  }
+
+  const pool =
+    current && activeFriends.length > 1
+      ? activeFriends.filter((f) => f.id !== current.target.id)
+      : activeFriends;
+
+  const chosen = pool[crypto.randomInt(pool.length)];
+
+  if (current) {
+    await db
+      .update(dailyChallenges)
+      .set({
+        friendId: chosen.id,
+        totalSolves: 0,
+        totalAttemptsOnSolve: 0,
+        version: sql`${dailyChallenges.version} + 1`,
+      })
+      .where(eq(dailyChallenges.id, current.challenge.id));
+  } else {
+    await db.insert(dailyChallenges).values({
+      dateKey,
+      mode,
+      friendId: chosen.id,
+      version: 1,
+    });
+  }
+
+  return {
+    friendId: chosen.id,
+    friendName: chosen.name,
+    friendAvatarUrl: chosen.avatarUrl,
   };
 }
 

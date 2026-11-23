@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, RefreshCw } from "lucide-react";
 import { DynamicImage } from "@/components/ui/DynamicImage";
 import { formatDisplayDate } from "@/engine/daily";
 import type { DailyStatsSummary, FriendRecord } from "@/types/game";
@@ -32,7 +32,13 @@ export function ScheduleManager({
   const [dateKey, setDateKey] = useState(todayKey);
   const [friendId, setFriendId] = useState(friends[0]?.id ?? "");
   const [saving, setSaving] = useState(false);
+  const [rerolling, setRerolling] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const todayItem = useMemo(
+    () => schedule.find((item) => item.dateKey === todayKey) ?? null,
+    [schedule, todayKey]
+  );
 
   const summary = useMemo(() => {
     const totalSolves = schedule.reduce((acc, s) => acc + s.stats.totalSolves, 0);
@@ -70,8 +76,70 @@ export function ScheduleManager({
     }
   };
 
+  const handleRerollToday = async () => {
+    const hasSolves = (todayItem?.stats.totalSolves ?? 0) > 0;
+    if (
+      hasSolves &&
+      !window.confirm(
+        `Hoy ya hubo ${todayItem?.stats.totalSolves} acierto(s). ¿Regenerar el amigo de hoy y reiniciar las estadísticas del día?`
+      )
+    ) {
+      return;
+    }
+
+    setRerolling(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/schedule/reroll", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMsg(data.error ?? "No se pudo regenerar el amigo de hoy.");
+        return;
+      }
+      setMsg(
+        `Amigo de hoy regenerado: ahora es ${data.friend.friendName}. El tablero de los jugadores se reiniciará al recargar.`
+      );
+      await onRefresh();
+    } finally {
+      setRerolling(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-slate-800 bg-[#111827] p-4">
+        <div className="flex items-center gap-3">
+          {todayItem && (
+            <DynamicImage
+              src={todayItem.friendAvatarUrl}
+              alt={todayItem.friendName}
+              className="h-11 w-11 rounded-[4px] border border-amber-400/50 object-cover"
+            />
+          )}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Amigo actual de hoy ({formatDisplayDate(todayKey)})
+            </p>
+            <p className="text-base font-black text-amber-300">
+              {todayItem?.friendName ?? "Sin sortear"}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleRerollToday}
+          disabled={rerolling || friends.length === 0}
+          className="inline-flex items-center gap-2 rounded-[4px] border border-sky-400/40 bg-sky-500/15 px-4 py-2 text-sm font-extrabold text-sky-300 transition hover:bg-sky-500/25 disabled:opacity-50"
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${rerolling ? "animate-spin" : ""}`}
+          />
+          {rerolling ? "Sorteando..." : "Regenerar amigo de hoy"}
+        </button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-3">
         {[
           { label: "Días registrados", value: summary.totalDays },

@@ -105,6 +105,7 @@ export interface DailyStatsSummary {
 
 export interface GameBootstrapResponse {
   dateKey: string;
+  challengeVersion: number;
   mode: GameMode;
   settings: GameSettingsData;
   candidates: FriendCandidate[];

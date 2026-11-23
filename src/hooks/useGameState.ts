@@ -9,6 +9,7 @@ const PLAYER_STATS_KEY = "paladle_stats_v1";
 
 interface StoredDailyState {
   dateKey: string;
+  challengeVersion?: number;
   guesses: GuessEntry[];
 }
 
@@ -86,7 +87,7 @@ const getServerDailySnapshot = () => null;
 const getServerStatsSnapshot = () => DEFAULT_STATS;
 const subscribeClientFlag = () => () => {};
 
-export function useGameState(dateKey: string) {
+export function useGameState(dateKey: string, challengeVersion: number) {
   const hydrated = useSyncExternalStore(
     subscribeClientFlag,
     () => true,
@@ -104,7 +105,9 @@ export function useGameState(dateKey: string) {
   );
 
   const guesses =
-    dailyState && dailyState.dateKey === dateKey
+    dailyState &&
+    dailyState.dateKey === dateKey &&
+    (dailyState.challengeVersion ?? 1) === challengeVersion
       ? dailyState.guesses
       : EMPTY_GUESSES;
 
@@ -112,7 +115,9 @@ export function useGameState(dateKey: string) {
     (entry: GuessEntry, reachedMaxLoss = false) => {
       const currentDaily = getDailySnapshot();
       const prevGuesses =
-        currentDaily && currentDaily.dateKey === dateKey
+        currentDaily &&
+        currentDaily.dateKey === dateKey &&
+        (currentDaily.challengeVersion ?? 1) === challengeVersion
           ? currentDaily.guesses
           : [];
 
@@ -125,6 +130,7 @@ export function useGameState(dateKey: string) {
         DAILY_STATE_KEY,
         JSON.stringify({
           dateKey,
+          challengeVersion,
           guesses: nextGuesses,
         } satisfies StoredDailyState)
       );
@@ -160,7 +166,7 @@ export function useGameState(dateKey: string) {
 
       notifyListeners();
     },
-    [dateKey]
+    [dateKey, challengeVersion]
   );
 
   const solved = guesses.some((g) => g.isCorrect);

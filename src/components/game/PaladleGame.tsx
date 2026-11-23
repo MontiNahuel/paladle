@@ -29,8 +29,10 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
   const { settings, candidates, yesterdayFriend, dateKey, poolEmpty } =
     initialData;
 
-  const { guesses, stats, solved, hydrated, recordGuess } =
-    useGameState(dateKey);
+  const { guesses, stats, solved, hydrated, recordGuess } = useGameState(
+    dateKey,
+    initialData.challengeVersion
+  );
 
   const [dailyStats, setDailyStats] = useState<DailyStatsSummary>(
     initialData.dailyStats

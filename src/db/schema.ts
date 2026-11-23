@@ -64,6 +64,7 @@ export const dailyChallenges = pgTable(
     totalAttemptsOnSolve: integer("total_attempts_on_solve")
       .notNull()
       .default(0),
+    version: integer("version").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

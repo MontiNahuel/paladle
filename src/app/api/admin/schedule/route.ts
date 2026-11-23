@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { dailyChallenges, friends } from "@/db/schema";
@@ -47,6 +47,7 @@ export async function GET() {
         friendId: row.friendId,
         totalSolves: row.totalSolves,
         totalAttemptsOnSolve: row.totalAttemptsOnSolve,
+        version: 1,
         createdAt: new Date(),
       }),
     })),
@@ -91,6 +92,9 @@ export async function PUT(request: Request) {
       target: [dailyChallenges.dateKey, dailyChallenges.mode],
       set: {
         friendId: parsed.data.friendId,
+        totalSolves: 0,
+        totalAttemptsOnSolve: 0,
+        version: sql`${dailyChallenges.version} + 1`,
       },
     });
 
