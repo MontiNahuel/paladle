@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   ACTIVITY_STATUS_OPTIONS,
   LOL_PLAYER_OPTIONS,
+  RETRO_FONT_OPTIONS,
   THEME_PRESET_OPTIONS,
   TRI_STATE_OPTIONS,
   WORK_STATUS_OPTIONS,
@@ -44,6 +45,7 @@ export const settingsInputSchema = z.object({
   title: z.string().trim().min(1, "El título es obligatorio").max(50),
   subtitle: z.string().trim().min(1, "El subtítulo es obligatorio").max(120),
   themePreset: z.enum(THEME_PRESET_OPTIONS),
+  retroFont: z.enum(RETRO_FONT_OPTIONS).default("pixelify"),
   primaryColor: hexColorSchema,
   backgroundColor: hexColorSchema,
   surfaceColor: hexColorSchema,

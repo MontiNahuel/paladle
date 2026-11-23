@@ -1,7 +1,49 @@
-import type { GameSettingsData, ThemePreset } from "@/types/game";
+import type { GameSettingsData, RetroFont, ThemePreset } from "@/types/game";
+
+export const RETRO_FONT_LABELS: Record<
+  RetroFont,
+  {
+    label: string;
+    note: string;
+    fontCss: string;
+    cellSize: string;
+    cellWeight: string;
+    cellTracking: string;
+    cellLineHeight: string;
+  }
+> = {
+  pixelify: {
+    label: "Pixelify Sans",
+    note: "RPG / Minecraft (16px)",
+    fontCss: "var(--font-pixel-body), monospace",
+    cellSize: "1rem",
+    cellWeight: "500",
+    cellTracking: "0.01em",
+    cellLineHeight: "1.15",
+  },
+  silkscreen: {
+    label: "Silkscreen",
+    note: "Pixel UI limpia (12.5px)",
+    fontCss: "var(--font-pixel-silkscreen), monospace",
+    cellSize: "0.78rem",
+    cellWeight: "400",
+    cellTracking: "-0.02em",
+    cellLineHeight: "1.2",
+  },
+  "press-start": {
+    label: "Press Start 2P",
+    note: "8-bit NES compacta (10px)",
+    fontCss: "var(--font-pixel-display), monospace",
+    cellSize: "0.625rem",
+    cellWeight: "400",
+    cellTracking: "-0.03em",
+    cellLineHeight: "1.35",
+  },
+};
 
 export interface ThemePalette {
   label: string;
+  tag: string;
   description: string;
   primaryColor: string;
   backgroundColor: string;
@@ -13,30 +55,36 @@ export interface ThemePalette {
 export const THEME_PRESETS: Record<Exclude<ThemePreset, "custom">, ThemePalette> = {
   pokedle: {
     label: "Cielo Clásico",
-    description: "Inspirado en Pokédle: cielo celeste, bordes dorados y tarjetas azul marino.",
+    tag: "Clásico",
+    description:
+      "Cielo celeste con nubes, horizonte verde, bordes dorados y título con contorno gamer.",
     primaryColor: "#facc15",
     backgroundColor: "#0c4a6e",
     surfaceColor: "#172554",
     accentColor: "#38bdf8",
-    gradientCss: "linear-gradient(180deg, #38bdf8 0%, #0284c7 48%, #0f172a 100%)",
+    gradientCss: "linear-gradient(180deg, #38bdf8 0%, #0284c7 58%, #15803d 100%)",
   },
   dark: {
     label: "Noche Moderna",
-    description: "Estética oscura minimalista de alto contraste.",
+    tag: "Minimal",
+    description:
+      "Grilla oscura minimalista con tarjetas translúcidas, bordes finos y acentos neón suaves.",
     primaryColor: "#22d3ee",
-    backgroundColor: "#09090b",
-    surfaceColor: "#18181b",
+    backgroundColor: "#090b10",
+    surfaceColor: "#111827",
     accentColor: "#34d399",
-    gradientCss: "radial-gradient(circle at top, #1e293b 0%, #09090b 70%)",
+    gradientCss: "radial-gradient(circle at top, #111827 0%, #090b10 75%)",
   },
   retro: {
     label: "Arcade Retro",
-    description: "Tonos violeta neón con acentos magenta y ámbar.",
+    tag: "8-Bit Pixel",
+    description:
+      "Estilo pixelado completo: tipografía 8-bit, scanlines CRT, sombras duras y avatares pixelados.",
     primaryColor: "#fbbf24",
-    backgroundColor: "#1e1b4b",
-    surfaceColor: "#2e1065",
+    backgroundColor: "#140f2d",
+    surfaceColor: "#261652",
     accentColor: "#f43f5e",
-    gradientCss: "linear-gradient(160deg, #312e81 0%, #1e1b4b 50%, #0f0720 100%)",
+    gradientCss: "linear-gradient(160deg, #261652 0%, #140f2d 65%, #090614 100%)",
   },
 };
 
@@ -44,6 +92,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettingsData = {
   title: "Paladle",
   subtitle: "¡Adiviná el amigo del día!",
   themePreset: "pokedle",
+  retroFont: "pixelify",
   primaryColor: THEME_PRESETS.pokedle.primaryColor,
   backgroundColor: THEME_PRESETS.pokedle.backgroundColor,
   surfaceColor: THEME_PRESETS.pokedle.surfaceColor,
@@ -57,5 +106,5 @@ export function resolveBackgroundStyle(settings: GameSettingsData): string {
   if (settings.themePreset !== "custom") {
     return THEME_PRESETS[settings.themePreset].gradientCss;
   }
-  return `radial-gradient(circle at top, ${settings.surfaceColor} 0%, ${settings.backgroundColor} 75%)`;
+  return `radial-gradient(circle at top, ${settings.surfaceColor} 0%, ${settings.backgroundColor} 78%)`;
 }

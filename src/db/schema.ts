@@ -80,6 +80,9 @@ export const gameSettings = pgTable("game_settings", {
   themePreset: varchar("theme_preset", { length: 32 })
     .notNull()
     .default("pokedle"),
+  retroFont: varchar("retro_font", { length: 32 })
+    .notNull()
+    .default("pixelify"),
   primaryColor: varchar("primary_color", { length: 16 })
     .notNull()
     .default("#facc15"),

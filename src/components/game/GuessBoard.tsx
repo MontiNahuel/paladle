@@ -20,13 +20,13 @@ export function GuessBoard({
   }
 
   return (
-    <div className="w-full overflow-x-auto pb-3">
-      <div className="mx-auto min-w-[1060px] max-w-6xl space-y-2 px-1">
+    <div className="paladle-scroller w-full overflow-x-auto pb-3">
+      <div className="mx-auto min-w-[1040px] max-w-7xl space-y-2">
         {/* Column headers */}
-        <div className="grid grid-cols-[110px_repeat(12,minmax(78px,1fr))] gap-1.5 sm:grid-cols-[128px_repeat(12,minmax(84px,1fr))]">
+        <div className="grid grid-cols-[106px_repeat(12,minmax(76px,1fr))] gap-1.5 sm:grid-cols-[116px_repeat(12,minmax(78px,1fr))]">
           <div
-            className="sticky left-0 z-10 flex items-center justify-center rounded-lg px-2 py-1.5 text-center text-xs font-extrabold uppercase tracking-wide text-white shadow"
-            style={{ backgroundColor: `${surfaceColor}e6` }}
+            className="sticky left-0 z-30 flex items-center justify-center rounded-[4px] border border-white/25 px-2 py-1.5 text-center text-xs font-extrabold uppercase tracking-wide text-white shadow-[6px_0_12px_rgba(0,0,0,0.45)]"
+            style={{ backgroundColor: surfaceColor }}
           >
             Amigo
           </div>
@@ -34,7 +34,7 @@ export function GuessBoard({
             <div
               key={col.key}
               title={col.fullLabel}
-              className="flex items-center justify-center rounded-lg border border-white/15 bg-black/45 px-1 py-1.5 text-center text-[11px] font-bold leading-tight text-white/95 backdrop-blur-sm"
+              className="flex items-center justify-center rounded-[4px] border border-white/20 bg-black/45 px-1 py-1.5 text-center text-[11px] font-bold leading-tight text-white/95 backdrop-blur-sm"
             >
               {col.shortLabel}
             </div>

@@ -21,6 +21,7 @@ import type {
   GameBootstrapResponse,
   GameMode,
   GameSettingsData,
+  RetroFont,
   ThemePreset,
 } from "@/types/game";
 
@@ -54,6 +55,7 @@ export function toGameSettingsData(row?: GameSettingsRow | null): GameSettingsDa
     title: row.title,
     subtitle: row.subtitle,
     themePreset: row.themePreset as ThemePreset,
+    retroFont: (row.retroFont as RetroFont) ?? "pixelify",
     primaryColor: row.primaryColor,
     backgroundColor: row.backgroundColor,
     surfaceColor: row.surfaceColor,

@@ -22,6 +22,13 @@ export const THEME_PRESET_OPTIONS = [
 ] as const;
 export type ThemePreset = (typeof THEME_PRESET_OPTIONS)[number];
 
+export const RETRO_FONT_OPTIONS = [
+  "pixelify",
+  "silkscreen",
+  "press-start",
+] as const;
+export type RetroFont = (typeof RETRO_FONT_OPTIONS)[number];
+
 export const GAME_MODES = ["classic"] as const;
 export type GameMode = (typeof GAME_MODES)[number];
 
@@ -81,6 +88,7 @@ export interface GameSettingsData {
   title: string;
   subtitle: string;
   themePreset: ThemePreset;
+  retroFont: RetroFont;
   primaryColor: string;
   backgroundColor: string;
   surfaceColor: string;

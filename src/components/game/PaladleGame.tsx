@@ -1,18 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { BarChart3, Flame, HelpCircle, Users } from "lucide-react";
-import { DynamicImage } from "@/components/ui/DynamicImage";
 import { GuessBoard } from "@/components/game/GuessBoard";
+import { GUESS_REVEAL_MS } from "@/components/game/GuessRow";
 import {
   HowToPlayModal,
   StatsModal,
   VictoryBanner,
 } from "@/components/game/Modals";
 import { SearchInput } from "@/components/game/SearchInput";
+import { DynamicImage } from "@/components/ui/DynamicImage";
 import { formatDisplayDate } from "@/engine/daily";
 import { useGameState } from "@/hooks/useGameState";
-import { resolveBackgroundStyle } from "@/lib/theme";
+import { RETRO_FONT_LABELS } from "@/lib/theme";
 import type {
   DailyStatsSummary,
   GameBootstrapResponse,
@@ -35,10 +36,20 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
     initialData.dailyStats
   );
   const [latestGuessId, setLatestGuessId] = useState<string | null>(null);
+  const [isRevealingWin, setIsRevealingWin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimerRef.current) {
+        clearTimeout(revealTimerRef.current);
+      }
+    };
+  }, []);
 
   const guessedIds = useMemo(
     () => new Set(guesses.map((g) => g.guessId)),
@@ -81,6 +92,15 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
 
       setLatestGuessId(data.guess.guessId);
       setDailyStats(data.dailyStats);
+      if (data.guess.isCorrect) {
+        setIsRevealingWin(true);
+        if (revealTimerRef.current) {
+          clearTimeout(revealTimerRef.current);
+        }
+        revealTimerRef.current = setTimeout(() => {
+          setIsRevealingWin(false);
+        }, GUESS_REVEAL_MS);
+      }
       recordGuess(data.guess, willReachMaxLoss);
     } catch {
       setErrorMsg("Error de conexión. Probá de nuevo.");
@@ -89,12 +109,31 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
     }
   };
 
-  const bgGradient = resolveBackgroundStyle(settings);
+  const retroFontMeta = RETRO_FONT_LABELS[settings.retroFont ?? "pixelify"];
+
+  const themeVars = {
+    "--paladle-primary": settings.primaryColor,
+    "--paladle-bg": settings.backgroundColor,
+    "--paladle-surface": settings.surfaceColor,
+    "--paladle-accent": settings.accentColor,
+    "--paladle-radius": "4px",
+    ...(settings.themePreset === "retro"
+      ? {
+          "--paladle-body-font": retroFontMeta.fontCss,
+          "--paladle-cell-size": retroFontMeta.cellSize,
+          "--paladle-cell-weight": retroFontMeta.cellWeight,
+          "--paladle-cell-tracking": retroFontMeta.cellTracking,
+          "--paladle-cell-line-height": retroFontMeta.cellLineHeight,
+        }
+      : {}),
+  } as CSSProperties;
 
   return (
     <div
-      className="relative flex min-h-screen flex-col overflow-x-hidden text-white"
-      style={{ background: bgGradient }}
+      data-theme={settings.themePreset}
+      data-retro-font={settings.retroFont}
+      style={themeVars}
+      className="paladle-stage relative flex min-h-screen flex-col overflow-x-hidden text-white"
     >
       {settings.backgroundImageUrl && (
         <div
@@ -105,17 +144,17 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
       )}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 bg-slate-950/35"
+        className="pointer-events-none fixed inset-0 bg-slate-950/25"
       />
 
       {/* Top Navigation */}
       <header className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-4 pt-6 pb-2">
         <div className="flex w-full items-center justify-between">
-          <div className="w-20">
+          <div className="w-24">
             {adminEnabled && (
               <a
                 href="/admin"
-                className="inline-flex items-center rounded-lg border border-white/25 bg-black/35 px-2.5 py-1 text-xs font-bold text-white/90 backdrop-blur-sm hover:bg-black/55"
+                className="paladle-btn inline-flex items-center rounded-[4px] border border-white/25 bg-black/40 px-2.5 py-1 text-xs font-bold text-white/95 backdrop-blur-sm transition hover:bg-black/60"
               >
                 Panel Dev
               </a>
@@ -127,11 +166,11 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
               <DynamicImage
                 src={settings.logoImageUrl}
                 alt={settings.title}
-                className="max-h-16 object-contain drop-shadow-xl"
+                className="paladle-avatar max-h-16 object-contain drop-shadow-xl"
               />
             ) : (
               <h1
-                className="text-4xl font-black tracking-tight drop-shadow-[0_4px_0_rgba(0,0,0,0.45)] sm:text-5xl"
+                className="paladle-title text-center text-4xl font-black tracking-tight sm:text-5xl"
                 style={{ color: settings.primaryColor }}
               >
                 {settings.title}
@@ -139,23 +178,24 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
             )}
           </div>
 
-          <div className="flex w-20 justify-end" />
+          <div className="flex w-24 justify-end" />
         </div>
 
         {/* Action Bar */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => setShowStats(true)}
             title="Estadísticas"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:scale-105 hover:bg-black/55"
+            aria-label="Estadísticas"
+            className="paladle-btn flex h-9 w-9 items-center justify-center rounded-[4px] border border-white/25 bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
           >
-            <BarChart3 className="h-5 w-5" />
+            <BarChart3 className="h-4 w-4" />
           </button>
 
           <div
             title="Racha actual"
-            className="flex h-10 items-center gap-1.5 rounded-full border border-white/25 bg-black/35 px-3 text-sm font-black backdrop-blur-sm"
+            className="paladle-btn flex h-9 items-center gap-1.5 rounded-[4px] border border-white/25 bg-black/40 px-3 text-sm font-black backdrop-blur-sm"
           >
             <Flame className="h-4 w-4 text-orange-400" />
             <span>{hydrated ? stats.currentStreak : 0}</span>
@@ -165,34 +205,39 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
             type="button"
             onClick={() => setShowHelp(true)}
             title="Cómo jugar"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:scale-105 hover:bg-black/55"
+            aria-label="Cómo jugar"
+            className="paladle-btn flex h-9 w-9 items-center justify-center rounded-[4px] border border-white/25 bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
           >
-            <HelpCircle className="h-5 w-5" />
+            <HelpCircle className="h-4 w-4" />
           </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center gap-5 px-3 py-4 sm:px-6">
+      <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center gap-5 px-3 py-4 sm:px-6">
         {/* Prompt Card */}
         <div
-          className="w-full max-w-lg rounded-2xl border-2 px-5 py-4 text-center shadow-2xl backdrop-blur-md"
+          className="paladle-card w-full max-w-lg px-5 py-4 text-center backdrop-blur-md"
           style={{
-            backgroundColor: `${settings.surfaceColor}e6`,
-            borderColor: settings.primaryColor,
+            backgroundColor: `${settings.surfaceColor}eb`,
           }}
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-white/60">
+          <p className="text-xs font-bold uppercase tracking-widest text-white/65">
             Edición diaria · {formatDisplayDate(dateKey)}
           </p>
           <p className="mt-1 text-lg font-extrabold sm:text-xl">
             {settings.subtitle}
           </p>
-          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-black/25 px-3 py-1 text-xs text-white/80">
-            <Users className="h-3.5 w-3.5" style={{ color: settings.accentColor }} />
+          <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-[4px] bg-black/30 px-3 py-1 text-xs text-white/85">
+            <Users
+              className="h-3.5 w-3.5"
+              style={{ color: settings.accentColor }}
+            />
             <span>
               {dailyStats.totalSolves}{" "}
-              {dailyStats.totalSolves === 1 ? "persona acertó" : "personas acertaron"}{" "}
+              {dailyStats.totalSolves === 1
+                ? "persona acertó"
+                : "personas acertaron"}{" "}
               hoy
               {dailyStats.totalSolves > 0
                 ? ` · Promedio ${dailyStats.avgAttempts} intentos`
@@ -200,7 +245,7 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
             </span>
           </div>
           {settings.maxAttempts !== null && (
-            <p className="mt-1.5 text-xs font-semibold text-white/70">
+            <p className="mt-1.5 text-xs font-semibold text-white/75">
               Intentos: {guesses.length} / {settings.maxAttempts}
             </p>
           )}
@@ -208,10 +253,9 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
 
         {poolEmpty ? (
           <div
-            className="w-full max-w-md rounded-2xl border-2 p-6 text-center shadow-xl"
+            className="paladle-card w-full max-w-md p-6 text-center"
             style={{
               backgroundColor: `${settings.surfaceColor}eb`,
-              borderColor: settings.primaryColor,
             }}
           >
             <p className="text-base font-bold">
@@ -225,14 +269,13 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
           </div>
         ) : (
           <>
-            {winningGuess ? (
+            {winningGuess && !isRevealingWin ? (
               <VictoryBanner
                 title={settings.title}
                 dateKey={dateKey}
                 guesses={guesses}
                 winningGuess={winningGuess}
                 dailyStats={dailyStats}
-                primaryColor={settings.primaryColor}
                 surfaceColor={settings.surfaceColor}
               />
             ) : (
@@ -248,7 +291,7 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
             )}
 
             {errorMsg && (
-              <p className="rounded-xl bg-rose-600/90 px-4 py-2 text-sm font-semibold text-white shadow">
+              <p className="rounded-[4px] border border-rose-300 bg-rose-600/95 px-4 py-2 text-sm font-semibold text-white shadow">
                 {errorMsg}
               </p>
             )}
@@ -264,14 +307,14 @@ export function PaladleGame({ initialData, adminEnabled }: PaladleGameProps) {
         {/* Yesterday's Friend */}
         {yesterdayFriend && (
           <div className="mt-auto pt-4 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/75 drop-shadow">
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/80 drop-shadow">
               El amigo de ayer fue
             </p>
-            <div className="mt-1.5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/40 px-3.5 py-1.5 backdrop-blur-sm">
+            <div className="mt-1.5 inline-flex items-center gap-2 rounded-[4px] border border-white/25 bg-black/45 px-3.5 py-1.5 backdrop-blur-sm">
               <DynamicImage
                 src={yesterdayFriend.avatarUrl}
                 alt={yesterdayFriend.name}
-                className="h-6 w-6 rounded-full object-cover"
+                className="paladle-avatar h-6 w-6 rounded-[4px] object-cover"
               />
               <span className="text-sm font-extrabold text-emerald-300">
                 {yesterdayFriend.name}

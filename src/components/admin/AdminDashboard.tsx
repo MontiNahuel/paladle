@@ -8,6 +8,7 @@ import {
   Lock,
   LogOut,
   Palette,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 import { FriendsManager } from "@/components/admin/FriendsManager";
@@ -136,17 +137,19 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
 
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 text-white">
+      <div className="admin-shell flex min-h-screen items-center justify-center p-4 text-white">
         <form
           onSubmit={handleLogin}
-          className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+          className="w-full max-w-sm space-y-4 rounded-[4px] border border-slate-800 bg-[#111827] p-6 shadow-2xl"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/15 text-amber-400">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[4px] border border-amber-400/30 bg-amber-400/15 text-amber-400">
               <Lock className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-black">Panel Dev — Paladle</h1>
+              <h1 className="text-lg font-black text-slate-50">
+                Panel Dev · Paladle
+              </h1>
               <p className="text-xs text-slate-400">
                 Ingresá la contraseña de administración
               </p>
@@ -155,28 +158,30 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
 
           <input
             required
+            autoFocus
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña..."
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm outline-none focus:border-amber-400"
+            className="w-full rounded-[4px] border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400"
           />
 
-          {authError && <p className="text-xs text-rose-400">{authError}</p>}
+          {authError && (
+            <p className="rounded-[4px] border border-rose-500/35 bg-rose-500/15 px-3 py-2 text-xs text-rose-300">
+              {authError}
+            </p>
+          )}
 
           <button
             type="submit"
             disabled={loggingIn}
-            className="w-full rounded-xl bg-amber-400 py-2.5 text-sm font-extrabold text-slate-950 hover:bg-amber-300 disabled:opacity-50"
+            className="w-full rounded-[4px] bg-amber-400 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-amber-300 disabled:opacity-50"
           >
             {loggingIn ? "Verificando..." : "Entrar"}
           </button>
 
           <div className="pt-1 text-center">
-            <Link
-              href="/"
-              className="text-xs text-slate-400 hover:text-white"
-            >
+            <Link href="/" className="text-xs text-slate-400 hover:text-white">
               ← Volver al juego
             </Link>
           </div>
@@ -186,31 +191,34 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur">
+    <div className="admin-shell min-h-screen text-slate-100">
+      <header className="border-b border-slate-800 bg-[#0d1424]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-[4px] border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Ver juego
             </Link>
-            <h1 className="text-xl font-black tracking-tight text-amber-400">
-              Paladle · Panel Dev
-            </h1>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-amber-400" />
+              <h1 className="text-lg font-black tracking-tight text-slate-50 sm:text-xl">
+                Paladle <span className="text-amber-400">Admin</span>
+              </h1>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-[4px] border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-300 transition hover:border-rose-500/40 hover:text-rose-300"
           >
             <LogOut className="h-3.5 w-3.5" /> Salir
           </button>
         </div>
 
-        <div className="mx-auto flex max-w-6xl gap-1 px-4">
+        <nav className="mx-auto flex max-w-6xl gap-1 px-4">
           {[
             { id: "friends" as const, label: "Amigos", icon: Users },
             { id: "theme" as const, label: "Estética y Reglas", icon: Palette },
@@ -226,7 +234,7 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-bold transition ${
                   active
                     ? "border-amber-400 text-amber-400"
-                    : "border-transparent text-slate-400 hover:text-white"
+                    : "border-transparent text-slate-400 hover:text-slate-100"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -234,12 +242,14 @@ export function AdminDashboard({ initialAuthenticated }: AdminDashboardProps) {
               </button>
             );
           })}
-        </div>
+        </nav>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         {loading && friends.length === 0 ? (
-          <p className="text-sm text-slate-400">Cargando panel...</p>
+          <div className="rounded-[4px] border border-slate-800 bg-[#111827] p-6 text-sm text-slate-400">
+            Cargando panel...
+          </div>
         ) : (
           <>
             {tab === "friends" && (

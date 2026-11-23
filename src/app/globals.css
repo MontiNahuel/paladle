@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #090d16;
+  --foreground: #f8fafc;
+  --paladle-radius: 4px;
+  --paladle-primary: #facc15;
+  --paladle-bg: #0c4a6e;
+  --paladle-surface: #172554;
+  --paladle-accent: #38bdf8;
 }
 
 @theme inline {
@@ -12,15 +17,259 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Native <dialog> scroll containment & backdrop */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgb(2 6 23 / 0.78);
+  backdrop-filter: blur(4px);
+}
+
+/* Brand-consistent dark form controls in Admin */
+.admin-shell {
+  color-scheme: dark;
+  accent-color: #f59e0b;
+  background-color: #080c15;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgb(56 189 248 / 0.08), transparent 40%),
+    radial-gradient(circle at 85% 10%, rgb(245 158 11 / 0.07), transparent 35%);
+}
+
+/* Dynamic text contrast helper for user-selected primary colors */
+.paladle-primary-btn {
+  background-color: var(--paladle-primary);
+  color: #090d16;
+}
+
+@supports (color: contrast-color(red)) {
+  .paladle-primary-btn {
+    color: contrast-color(var(--paladle-primary));
+  }
+}
+
+@supports not (color: contrast-color(red)) {
+  @supports (color: color(from red xyz-d65 0 0 0)) {
+    .paladle-primary-btn {
+      --wcag-y-threshold: 0.17913;
+      --y: max(0, sign(var(--wcag-y-threshold) - y));
+      color: color(
+        from var(--paladle-primary) xyz-d65 calc(var(--y) * 0.9505) var(--y)
+          calc(var(--y) * 1.089)
+      );
+    }
+  }
+}
+
+/* ============================================================
+   Paladle Theme Architecture (Visual + Structural + Typography)
+   ============================================================ */
+
+.paladle-stage {
+  --paladle-card-border: 2px solid var(--paladle-primary);
+  --paladle-card-shadow: 0 12px 30px rgb(0 0 0 / 0.35);
+  --paladle-cell-shadow: 0 4px 10px rgb(0 0 0 / 0.25);
+  --paladle-title-font: var(--font-geist-sans), sans-serif;
+  --paladle-body-font: var(--font-geist-sans), sans-serif;
+  font-family: var(--paladle-body-font);
+  border-radius: 0;
+}
+
+.paladle-stage input,
+.paladle-stage button,
+.paladle-stage select,
+.paladle-stage dialog {
+  font-family: inherit;
+}
+
+.paladle-title {
+  font-family: var(--paladle-title-font);
+}
+
+.paladle-card {
+  border: var(--paladle-card-border);
+  box-shadow: var(--paladle-card-shadow);
+  border-radius: var(--paladle-radius);
+}
+
+.paladle-cell {
+  box-shadow: var(--paladle-cell-shadow);
+  border-radius: var(--paladle-radius);
+}
+
+/* --- 1. POKÉDLE: Cielo Clásico --- */
+.paladle-stage[data-theme="pokedle"] {
+  background:
+    radial-gradient(ellipse 320px 90px at 15% 18%, rgb(255 255 255 / 0.28), transparent 70%),
+    radial-gradient(ellipse 380px 100px at 84% 24%, rgb(255 255 255 / 0.24), transparent 70%),
+    linear-gradient(180deg, #38bdf8 0%, #0284c7 58%, #15803d 86%, #14532d 100%);
+}
+
+.paladle-stage[data-theme="pokedle"] .paladle-title {
+  -webkit-text-stroke: 6px #1e3a8a;
+  paint-order: stroke fill;
+  text-shadow: 0 5px 0 #0f172a;
+}
+
+.paladle-stage[data-theme="pokedle"] .paladle-card {
+  border: 2px solid var(--paladle-primary);
+  box-shadow: 0 6px 0 rgb(15 23 42 / 0.45), 0 14px 28px rgb(0 0 0 / 0.35);
+}
+
+/* --- 2. DARK: Noche Moderna --- */
+.paladle-stage[data-theme="dark"] {
+  background-color: #090b10;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgb(34 211 238 / 0.14), transparent 52%),
+    linear-gradient(rgb(255 255 255 / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 36px 36px, 36px 36px;
+}
+
+.paladle-stage[data-theme="dark"] .paladle-card {
+  border: 1px solid rgb(148 163 184 / 0.25);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.04), 0 18px 40px rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.paladle-stage[data-theme="dark"] .paladle-title {
+  letter-spacing: -0.03em;
+  text-shadow: 0 0 28px rgb(34 211 238 / 0.3);
+}
+
+/* --- 3. RETRO: Arcade Pixelado 8-Bit --- */
+.paladle-stage[data-theme="retro"] {
+  --paladle-title-font: var(--font-pixel-display), monospace;
+  font-family: var(--paladle-body-font, var(--font-pixel-body), monospace);
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  background-color: #140f2d;
+  background-image:
+    radial-gradient(circle at 50% 12%, rgb(244 63 94 / 0.22), transparent 55%),
+    linear-gradient(rgb(251 191 36 / 0.06) 2px, transparent 2px),
+    linear-gradient(90deg, rgb(251 191 36 / 0.06) 2px, transparent 2px);
+  background-size: 100% 100%, 24px 24px, 24px 24px;
+}
+
+.paladle-stage[data-theme="retro"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  background: repeating-linear-gradient(
+    0deg,
+    rgb(0 0 0 / 0.14) 0px,
+    rgb(0 0 0 / 0.14) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.paladle-stage[data-theme="retro"] .paladle-title {
+  font-family: var(--font-pixel-display), monospace;
+  font-size: clamp(1.6rem, 1rem + 3vw, 2.75rem);
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  -webkit-text-stroke: 4px #090614;
+  paint-order: stroke fill;
+  text-shadow: 4px 4px 0 #f43f5e, 7px 7px 0 #000;
+}
+
+.paladle-stage[data-theme="retro"] .paladle-card {
+  border: 3px solid var(--paladle-primary);
+  box-shadow:
+    5px 5px 0 #000,
+    inset 0 2px 0 rgb(255 255 255 / 0.18),
+    inset 0 -3px 0 rgb(0 0 0 / 0.45);
+}
+
+.paladle-stage[data-theme="retro"] .paladle-cell {
+  border-width: 3px;
+  box-shadow:
+    3px 3px 0 #000,
+    inset 2px 2px 0 rgb(255 255 255 / 0.24),
+    inset -2px -2px 0 rgb(0 0 0 / 0.4);
+}
+
+.paladle-stage[data-theme="retro"] .paladle-cell-value {
+  font-size: var(--paladle-cell-size, 1rem);
+  font-weight: var(--paladle-cell-weight, 500);
+  letter-spacing: var(--paladle-cell-tracking, 0.01em);
+  line-height: var(--paladle-cell-line-height, 1.15);
+}
+
+.paladle-stage[data-theme="retro"][data-retro-font="press-start"] input {
+  font-size: 0.6875rem;
+}
+
+.paladle-stage[data-theme="retro"] .paladle-btn {
+  font-family: var(--font-pixel-display), monospace;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0 #000;
+}
+
+.paladle-stage[data-theme="retro"] .paladle-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+.paladle-stage[data-theme="retro"] .paladle-avatar {
+  image-rendering: pixelated;
+}
+
+/* --- 4. CUSTOM: Colores Personalizados --- */
+.paladle-stage[data-theme="custom"] {
+  background: radial-gradient(
+    circle at top,
+    var(--paladle-surface) 0%,
+    var(--paladle-bg) 78%
+  );
+}
+
+.paladle-stage[data-theme="custom"] .paladle-card {
+  border: 2px solid var(--paladle-primary);
+}
+
+/* ============================================================
+   Themed Scrollbars (Standard + WebKit fallback)
+   ============================================================ */
+
+.paladle-scroller {
+  --scrollbar-thumb: var(--paladle-primary, #facc15);
+  --scrollbar-track: rgb(9 13 22 / 0.72);
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+@supports not (scrollbar-color: auto) {
+  .paladle-scroller {
+    scrollbar-width: auto;
+  }
+
+  .paladle-scroller::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .paladle-scroller::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+  }
+
+  .paladle-scroller::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
 }

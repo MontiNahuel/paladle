@@ -73,13 +73,13 @@ export function SearchInput({
   return (
     <div className="relative mx-auto w-full max-w-md">
       <div
-        className="flex items-center overflow-hidden rounded-full border-2 bg-white shadow-xl transition-shadow focus-within:ring-2"
+        className="flex items-center overflow-hidden rounded-[4px] border-2 bg-white shadow-xl transition-shadow focus-within:ring-2"
         style={{
           borderColor: primaryColor,
         }}
       >
-        <div className="pl-4 text-slate-400">
-          <Search className="h-5 w-5" />
+        <div className="pl-3.5 text-slate-400">
+          <Search className="h-4 w-4" />
         </div>
         <input
           type="text"
@@ -100,7 +100,7 @@ export function SearchInput({
               ? "Juego terminado por hoy"
               : "Escribí el nombre de un amigo..."
           }
-          className="w-full bg-transparent px-3 py-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+          className="w-full bg-transparent px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
         />
         <button
           type="button"
@@ -111,8 +111,7 @@ export function SearchInput({
             if (target) handleChoose(target);
           }}
           aria-label="Enviar intento"
-          className="mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-950 transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
-          style={{ backgroundColor: primaryColor }}
+          className="paladle-primary-btn paladle-btn mr-1.5 flex h-8 w-9 shrink-0 items-center justify-center rounded-[4px] transition-transform hover:opacity-90 disabled:opacity-40"
         >
           <Send className="h-4 w-4" />
         </button>
@@ -120,10 +119,9 @@ export function SearchInput({
 
       {open && !disabled && filtered.length > 0 && (
         <ul
-          className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-2xl border-2 p-1.5 shadow-2xl backdrop-blur-md"
+          className="paladle-card absolute z-30 mt-1.5 max-h-64 w-full overflow-y-auto p-1 shadow-2xl backdrop-blur-md"
           style={{
-            backgroundColor: `${surfaceColor}f2`,
-            borderColor: primaryColor,
+            backgroundColor: `${surfaceColor}f5`,
           }}
         >
           {filtered.map((candidate, idx) => {
@@ -137,14 +135,14 @@ export function SearchInput({
                     handleChoose(candidate);
                   }}
                   onMouseEnter={() => setActiveIndex(idx)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white transition-colors ${
+                  className={`flex w-full items-center gap-3 rounded-[4px] px-2.5 py-2 text-left text-sm font-semibold text-white transition-colors ${
                     isActive ? "bg-white/20" : "hover:bg-white/10"
                   }`}
                 >
                   <DynamicImage
                     src={candidate.avatarUrl}
                     alt={candidate.name}
-                    className="h-9 w-9 shrink-0 rounded-lg border border-white/20 bg-slate-800 object-cover"
+                    className="paladle-avatar h-9 w-9 shrink-0 rounded-[4px] border border-white/20 bg-slate-800 object-cover"
                   />
                   <span className="truncate">{candidate.name}</span>
                 </button>
@@ -156,10 +154,9 @@ export function SearchInput({
 
       {open && !disabled && query.trim().length > 0 && filtered.length === 0 && (
         <div
-          className="absolute z-30 mt-2 w-full rounded-2xl border px-4 py-3 text-center text-sm text-white/80 shadow-xl"
+          className="paladle-card absolute z-30 mt-1.5 w-full px-4 py-3 text-center text-sm text-white/80 shadow-xl"
           style={{
-            backgroundColor: `${surfaceColor}f2`,
-            borderColor: primaryColor,
+            backgroundColor: `${surfaceColor}f5`,
           }}
         >
           No hay amigos disponibles con ese nombre.
