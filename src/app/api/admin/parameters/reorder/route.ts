@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { gameParameters } from "@/db/schema";
+import { bumpTodayChallengeVersion } from "@/db/queries";
 import { requireAdminApi } from "@/lib/admin-route-guard";
 
 const reorderSchema = z.object({
@@ -31,6 +32,8 @@ export async function PUT(request: Request) {
         .where(eq(gameParameters.id, id))
     )
   );
+
+  await bumpTodayChallengeVersion("classic");
 
   return NextResponse.json({ ok: true });
 }

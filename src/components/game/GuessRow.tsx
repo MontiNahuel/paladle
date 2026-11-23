@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { DynamicImage } from "@/components/ui/DynamicImage";
 import { PALADLE_COLUMNS } from "@/engine/columns";
-import type { GuessEntry } from "@/types/game";
+import type { GameParameter, GuessEntry } from "@/types/game";
 
 const CELL_STAGGER_S = 0.075;
 const CELL_FLIP_DURATION_S = 0.3;
@@ -15,6 +15,7 @@ export const GUESS_REVEAL_MS = Math.round(
 );
 
 interface GuessRowProps {
+  columns: GameParameter[];
   guess: GuessEntry;
   animate: boolean;
   surfaceColor: string;
@@ -22,13 +23,26 @@ interface GuessRowProps {
 }
 
 export function GuessRow({
+  columns,
   guess,
   animate,
   surfaceColor,
   gridStyle,
 }: GuessRowProps) {
+  const cellByKey = new Map(guess.cells.map((c) => [c.key, c]));
+  const alignedCells = columns.map(
+    (col) =>
+      cellByKey.get(col.key) ?? {
+        key: col.key,
+        label: col.shortLabel,
+        displayValue: "—",
+        status: "wrong" as const,
+        direction: "none" as const,
+      }
+  );
+
   const resolvedGridStyle = gridStyle ?? {
-    gridTemplateColumns: `112px repeat(${Math.max(guess.cells.length, 1)}, minmax(78px, 1fr))`,
+    gridTemplateColumns: `112px repeat(${Math.max(alignedCells.length, 1)}, minmax(78px, 1fr))`,
   };
 
   return (
@@ -48,8 +62,8 @@ export function GuessRow({
         </span>
       </div>
 
-      {/* 12 variable cells */}
-      {guess.cells.map((cell, index) => {
+      {/* Variable cells */}
+      {alignedCells.map((cell, index) => {
         const isCorrect = cell.status === "correct";
         const bgClass = isCorrect
           ? "bg-emerald-600/95 border-emerald-300 text-white"

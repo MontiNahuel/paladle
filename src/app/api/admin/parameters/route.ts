@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { gameParameters } from "@/db/schema";
-import { ensureGameParameters, toGameParameter } from "@/db/queries";
+import {
+  bumpTodayChallengeVersion,
+  ensureGameParameters,
+  toGameParameter,
+} from "@/db/queries";
 import { requireAdminApi } from "@/lib/admin-route-guard";
 import { parameterInputSchema } from "@/lib/validation";
 
@@ -93,6 +97,8 @@ export async function POST(request: Request) {
       isSystem: false,
     })
     .returning();
+
+  await bumpTodayChallengeVersion("classic");
 
   return NextResponse.json(
     { parameter: toGameParameter(inserted[0]) },

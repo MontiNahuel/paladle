@@ -470,6 +470,24 @@ export async function rerollDailyChallenge(
   };
 }
 
+export async function bumpTodayChallengeVersion(
+  mode: GameMode = "classic"
+): Promise<void> {
+  const db = getDb();
+  const dateKey = getArgentinaDateKey();
+  await db
+    .update(dailyChallenges)
+    .set({
+      version: sql`${dailyChallenges.version} + 1`,
+    })
+    .where(
+      and(
+        eq(dailyChallenges.dateKey, dateKey),
+        eq(dailyChallenges.mode, mode)
+      )
+    );
+}
+
 export async function recordDailySolve(
   dateKey: string,
   mode: GameMode,

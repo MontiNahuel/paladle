@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { gameParameters } from "@/db/schema";
-import { toGameParameter } from "@/db/queries";
+import { bumpTodayChallengeVersion, toGameParameter } from "@/db/queries";
 import { requireAdminApi } from "@/lib/admin-route-guard";
 import { parameterInputSchema } from "@/lib/validation";
 
@@ -78,6 +78,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     .where(eq(gameParameters.id, id))
     .returning();
 
+  await bumpTodayChallengeVersion("classic");
+
   return NextResponse.json({ parameter: toGameParameter(updated[0]) });
 }
 
@@ -113,5 +115,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   await db.delete(gameParameters).where(eq(gameParameters.id, id));
+  await bumpTodayChallengeVersion("classic");
   return NextResponse.json({ ok: true });
 }

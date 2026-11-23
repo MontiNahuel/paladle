@@ -16,11 +16,11 @@ export function GuessBoard({
   latestGuessId,
   surfaceColor,
 }: GuessBoardProps) {
-  if (guesses.length === 0) {
+  if (guesses.length === 0 || columns.length === 0) {
     return null;
   }
 
-  const colCount = Math.max(columns.length, guesses[0]?.cells.length ?? 0, 1);
+  const colCount = columns.length;
   const gridStyle = {
     gridTemplateColumns: `112px repeat(${colCount}, minmax(78px, 1fr))`,
   };
@@ -56,6 +56,7 @@ export function GuessBoard({
           {guesses.map((guess) => (
             <GuessRow
               key={guess.guessId}
+              columns={columns}
               guess={guess}
               animate={guess.guessId === latestGuessId}
               surfaceColor={surfaceColor}
